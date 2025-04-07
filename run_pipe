@@ -1,0 +1,6 @@
+#!/usr/bin/python3 -u
+
+# Main entry point for the Pipe data pipeline processor
+import pipe
+app = pipe.app.App()
+app.run()
