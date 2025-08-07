@@ -1,0 +1,48 @@
+# Include base requirements
+-r requirements.txt
+
+# Testing Framework
+pytest>=6.0.0
+pytest-cov>=2.12.0
+pytest-mock>=3.6.0
+pytest-benchmark>=3.4.0
+pytest-xdist>=2.4.0
+
+# Code Quality
+black>=21.0.0
+flake8>=3.9.0
+mypy>=0.910
+isort>=5.9.0
+pre-commit>=2.15.0
+
+# Security
+bandit>=1.7.0
+safety>=2.0.0
+
+# Documentation
+sphinx>=4.0.0
+sphinx-rtd-theme>=1.0.0
+mkdocs>=1.4.0
+mkdocs-material>=8.0.0
+
+# Development Tools
+ipdb>=0.13.0
+jupyter-lab>=3.0.0
+notebook>=6.4.0
+
+# Performance Profiling
+py-spy>=0.3.0
+scalene>=1.5.0
+
+# Data Quality
+great-expectations>=0.15.0
+pandera>=0.11.0
+
+# Advanced ML (optional)
+tensorflow>=2.6.0
+torch>=1.10.0
+transformers>=4.15.0
+
+# Deployment
+docker>=5.0.0
+gunicorn>=20.1.0

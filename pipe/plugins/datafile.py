@@ -10,9 +10,9 @@ import json
 class Datafile(Pluginbase):
 
     defaults = {
-        'raw_data_dir': '/var/lib/pyp/raw',
+        'raw_data_dir': '/var/lib/pipe/raw',
         'raw_data_strftime': '%Y%m%d%H%M%S.raw',
-        'decoded_data_dir': '/var/lib/pyp/decoded',
+        'decoded_data_dir': '/var/lib/pipe/decoded',
         'decoded_data_strftime': '%Y%m%d%H%M%S.data',
     }
 

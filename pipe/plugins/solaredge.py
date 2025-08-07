@@ -7,7 +7,7 @@ class Solaredge(Pluginbase):
 
     defaults = {
         'privkey': None,
-        'last_503_file': '/var/lib/pyp/503.data',
+        'last_503_file': '/var/lib/pipe/503.data',
         'save503': 'yes',
     }
 

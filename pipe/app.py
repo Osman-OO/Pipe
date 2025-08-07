@@ -7,6 +7,10 @@ import logging.handlers
 from .plugins.pluginbase import PluginError
 
 class App(object):
+    """
+    Main application class for the Pipe data pipeline processor.
+    Handles configuration, plugin management, and data flow.
+    """
 
     configfile      = None
     config          = None
@@ -14,20 +18,22 @@ class App(object):
     option_override = None
     loglevel        = logging.INFO
 
+    # Default configuration values
     defaults    = {
         'main': {
-            'logfile': '/var/log/pyp/pyp.log',
-            'loglevel': 'info',
+            'logfile': '/var/log/pipe/pipe.log',  # Default log file location
+            'loglevel': 'info',                   # Default logging level
         },
         'plugins': {
-            'input': 'fileread',
-            'decode': 'noop',
-            'output': 'print',
+            'input': 'fileread',                  # Default input plugin
+            'decode': 'noop',                     # Default decoder plugin
+            'output': 'print',                    # Default output plugin
         },
     }
 
-    def process_options (self):
-        parser = argparse.ArgumentParser(description='Pyp Pipeline Processor',
+    def process_options(self):
+        """Parse command line arguments and set configuration options"""
+        parser = argparse.ArgumentParser(description='Pipe Pipeline Processor',
             formatter_class=lambda prog: argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=38, width=120))
         parser.add_argument('-c', '--config', action='store', dest='configfile', default=self.configfile,
             help='path to configuration file')
@@ -44,6 +50,7 @@ class App(object):
         self.option_override = args.option
 
     def read_configfile(self):
+        """Read and parse configuration file, applying any command line overrides"""
         self.config = configparser.ConfigParser()
         if self.configfile:
             self.config.read(self.configfile)
@@ -58,19 +65,20 @@ class App(object):
                     keypart = key.rpartition('.')
                     section = keypart[0] or 'main'
                     if keypart[2]:
-                        #self.logger.info('Adding config override: %s = %s' % (key, val))
                         if not section in self.config:
                             self.config[section] = {}
                         self.config[section][keypart[2]] = val
                 except ValueError as e:
-                    #self.logger.warning('Config override value error: %s' % opt)
                     pass
 
     def confval(self, key, section='main'):
+        """Get configuration value with fallback to defaults"""
         return self.config[section].get(key, self.defaults[section][key])
 
     def create_plugins(self):
+        """Initialize and configure all plugins based on configuration"""
         try:
+            # Initialize input plugin
             input_plugin = self.confval('input', 'plugins')
             self.logger.debug('Configured input plugin: %s' % input_plugin)
             input_module = importlib.import_module('.plugins.%s' % input_plugin, package=__package__)
@@ -80,6 +88,7 @@ class App(object):
             self.config[input_plugin]['loglevel'] = str(self.loglevel)
             self.input = input_class(self.config[input_plugin], callback=self.input_callback)
 
+            # Initialize decoder plugins
             self.decode = []
             decode_plugins = self.confval('decode', 'plugins').split(',')
             for decode_plugin in decode_plugins:
@@ -92,6 +101,7 @@ class App(object):
                 config = self.config[decode_plugin]
                 self.decode.append(decode_class(config, callback=self.output_callback))
 
+            # Initialize output plugins
             self.output = []
             output_plugins = self.confval('output', 'plugins').split(',')
             for output_plugin in output_plugins:
@@ -107,18 +117,17 @@ class App(object):
         except ImportError as e:
             self.logger.exception('Plugin not found: %s' % e)
             sys.exit(1)
-
         except AttributeError as e:
             self.logger.exception('Plugin error, plugin base class missing: %s' % e)
             raise
             sys.exit(1)
-
         except Exception as e:
             self.logger.exception(e)
             raise
             sys.exit(1)
 
     def input_callback(self, data):
+        """Handle data from input plugin and pass through decoder chain"""
         for output in self.output:
             output.handle_raw(data)
         try:
@@ -139,11 +148,12 @@ class App(object):
             self.output_callback(data)
 
     def output_callback(self, data):
+        """Pass decoded data to all output plugins"""
         for output in self.output:
             output.handle_decoded(data)
 
     def setup_logging(self):
-        #os.umask(022)
+        """Configure logging system"""
         self.root_logger = logging.getLogger()
         self.logger = logging.getLogger(__package__)
         self.formatter = logging.Formatter('%(asctime)s [%(process)d] %(levelname)s: %(name)s: %(message)s','%Y-%m-%d %H:%M:%S')
@@ -176,12 +186,14 @@ class App(object):
             self.logger.info('No logfile configured.')
 
     def setup_verbose(self):
+        """Configure verbose logging to stderr"""
         loghandler = logging.StreamHandler(sys.stderr)
         loghandler.setFormatter(self.formatter)
         self.root_logger.addHandler(loghandler)
         self.logger.info('Verbose output configured.')
 
     def run(self):
+        """Main application entry point"""
         self.process_options()
         self.read_configfile()
         self.setup_logging()

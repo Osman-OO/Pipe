@@ -13,7 +13,7 @@ class Tshark(Pluginbase):
         'interface': 'ens5',
         'filter': 'tcp',
         'write_pcap': 'no',
-        'pcap_dir': '/var/lib/pyp/pcap',
+        'pcap_dir': '/var/lib/pipe/pcap',
         'pcap_strftime': '%Y%m%d%H%M%S',
         'callback': None,
     }

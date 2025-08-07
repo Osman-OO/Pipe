@@ -7,7 +7,7 @@ class Fileread(Pluginbase):
 
     defaults = {
         'filename': None,
-        'statefile': '/var/lib/pyp/fileread.state',
+        'statefile': '/var/lib/pipe/fileread.state',
         'unhexlify': 'no',
         'follow': 'no',
         'follow_delay': '2',
