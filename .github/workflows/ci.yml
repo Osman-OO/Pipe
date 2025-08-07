@@ -1,0 +1,115 @@
+name: Advanced Data Analytics Pipeline CI/CD
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', 3.11]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Generate sample data
+      run: |
+        cd data && python generate_sample_data.py
+    
+    - name: Run tests with pytest
+      run: |
+        python -m pytest tests/ -v --cov=pipe --cov-report=xml --cov-report=html
+    
+    - name: Run linting with flake8
+      run: |
+        flake8 pipe/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 pipe/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Type checking with mypy
+      run: |
+        mypy pipe/ --ignore-missing-imports
+    
+    - name: Security check with bandit
+      run: |
+        bandit -r pipe/ -f json -o bandit-report.json || true
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  build-and-test-docker:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: |
+        docker build -t analytics-pipeline:test .
+    
+    - name: Test Docker image
+      run: |
+        docker run --rm analytics-pipeline:test python -c "import pipe.analytics; print('✅ Import successful')"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, build-and-test-docker]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment"
+        # Add your deployment commands here
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          Advanced Data Analytics Pipeline Release
+          
+          ## Features
+          - Professional data analytics capabilities
+          - Interactive business intelligence dashboards
+          - Customer segmentation and behavioral analysis
+          - Statistical analysis and hypothesis testing
+          - Machine learning and predictive modeling
+          
+          ## Author
+          Osman Abdullahi - Data Analyst & Business Intelligence Specialist
+        draft: false
+        prerelease: false

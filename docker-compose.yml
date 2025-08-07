@@ -1,0 +1,72 @@
+# Advanced Data Analytics Pipeline - Docker Compose Configuration
+# Author: Osman Abdullahi
+
+version: '3.8'
+
+services:
+  analytics-dashboard:
+    build: .
+    container_name: analytics-dashboard
+    ports:
+      - "8050:8050"
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ANALYTICS_ENV=production
+    restart: unless-stopped
+    networks:
+      - analytics-network
+
+  analytics-worker:
+    build: .
+    container_name: analytics-worker
+    command: python -m pipe.analytics_app --dataset sales --analysis comprehensive --generate-report
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ANALYTICS_ENV=production
+    depends_on:
+      - analytics-dashboard
+    networks:
+      - analytics-network
+
+  # Optional: PostgreSQL for production data storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: analytics-postgres
+    environment:
+      POSTGRES_DB: analytics
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - analytics-network
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: analytics-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - analytics-network
+
+networks:
+  analytics-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
